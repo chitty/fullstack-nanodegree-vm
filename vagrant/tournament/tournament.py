@@ -45,8 +45,8 @@ def countPlayers():
 def registerPlayer(name):
     """Adds a player to the tournament database.
 
-    The database assigns a unique serial id number for the player.  (This
-    should be handled by your SQL database schema, not in your Python code.)
+    The database assigns a unique serial id number for the player. This is
+    handled by the SQL database schema.
 
     Args:
       name: the player's full name (need not be unique).
@@ -59,39 +59,60 @@ def registerPlayer(name):
 
 
 def playerStandings():
-    """Returns a list of the players and their win records, sorted by wins.
+    """Returns a list of the players and their win, tie records, sorted by
+       points.
+
+    Points are awarded according to the table below.
+
+       ---------------------
+       | WINS   | 3 points |
+       | TIES   | 1 point  |
+       | LOSSES | 0 points |
+       ---------------------
 
     The first entry in the list should be the player in first place, or a
     player tied for first place if there is currently a tie.
 
     Returns:
-      A list of tuples, each of which contains (id, name, wins, matches):
+      A list of tuples, each of which contains (id, name, wins, ties, matches):
         id: the player's unique id (assigned by the database)
         name: the player's full name (as registered)
         wins: the number of matches the player has won
+        ties: the number of matches the player has tied
         matches: the number of matches the player has played
     """
     conn = connect()
     c = conn.cursor()
-    c.execute("SELECT id, name, wins, matches FROM standings;")
-
+    c.execute("SELECT id, name, wins, ties, matches FROM standings;")
     result = c.fetchall()
     conn.close()
 
     return result
 
 
-def reportMatch(winner, loser):
+def reportMatch(winner, loser, tie1=None, tie2=None):
     """Records the outcome of a single match between two players.
 
     Args:
-      winner:  the id number of the player who won
-      loser:  the id number of the player who lost
+      winner:  the id number of the player who won. None if it was a tie.
+      loser:  the id number of the player who lost. None if it was a tie.
+      tie1:  the id number of one of the players who tied.
+             None if it was not a tie.
+      tie2:  the id number of the other player who tied.
+             None if it was not a tie.
     """
+    if winner is not None and loser is not None:
+        query = "INSERT INTO match (winner, loser) VALUES (%s, %s);"
+        values = (bleach.clean(winner), bleach.clean(loser))
+    elif tie1 is not None and tie2 is not None:
+        query = "INSERT INTO match (p1_ties, p2_ties) VALUES (%s, %s);"
+        values = (bleach.clean(tie1), bleach.clean(tie2))
+    else:
+        return
+
     conn = connect()
     c = conn.cursor()
-    c.execute("INSERT INTO match (winner, loser) VALUES (%s, %s);",
-              (bleach.clean(winner, loser), bleach.clean(loser)))
+    c.execute(query, values)
     conn.commit()
     conn.close()
 
@@ -116,7 +137,7 @@ def swissPairings():
     i = 0
     pairings = []
 
-    for id, name, wins, matches in standings:
+    for id, name, wins, ties, matches in standings:
         if (i % 2 == 0):
             last = (id, name)
         else:

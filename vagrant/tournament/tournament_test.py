@@ -2,11 +2,9 @@
 #
 # Test cases for tournament.py
 # These tests are not exhaustive, but they should cover the majority of cases.
-#
-# If you do add any of the extra credit options, be sure to add/modify these test cases
-# as appropriate to account for your module's added functionality.
 
 from tournament import *
+
 
 def testCount():
     """
@@ -42,6 +40,7 @@ def testCount():
             "After deletion, countPlayers should return zero.")
     print "4. countPlayers() returns zero after registered players are deleted.\n5. Player records successfully deleted."
 
+
 def testStandingsBeforeMatches():
     """
     Test to ensure players are properly represented in standings prior
@@ -57,16 +56,17 @@ def testStandingsBeforeMatches():
                          "they have played any matches.")
     elif len(standings) > 2:
         raise ValueError("Only registered players should appear in standings.")
-    if len(standings[0]) != 4:
-        raise ValueError("Each playerStandings row should have four columns.")
-    [(id1, name1, wins1, matches1), (id2, name2, wins2, matches2)] = standings
-    if matches1 != 0 or matches2 != 0 or wins1 != 0 or wins2 != 0:
+    if len(standings[0]) != 5:
+        raise ValueError("Each playerStandings row should have five columns.")
+    [(id1, name1, wins1, ties1, matches1), (id2, name2, wins2, ties2, matches2)] = standings
+    if matches1 != 0 or matches2 != 0 or wins1 != 0 or wins2 != 0 or ties1 != 0 or ties2 != 0:
         raise ValueError(
-            "Newly registered players should have no matches or wins.")
+            "Newly registered players should have no matches, wins or draws.")
     if set([name1, name2]) != set(["Melpomene Murray", "Randy Schwartz"]):
         raise ValueError("Registered players' names should appear in standings, "
                          "even if they have no matches played.")
     print "6. Newly registered players appear in the standings with no matches."
+
 
 def testReportMatches():
     """
@@ -84,24 +84,34 @@ def testReportMatches():
     reportMatch(id1, id2)
     reportMatch(id3, id4)
     standings = playerStandings()
-    for (i, n, w, m) in standings:
+    for (i, n, w, t, m) in standings:
         if m != 1:
             raise ValueError("Each player should have one match recorded.")
         if i in (id1, id3) and w != 1:
             raise ValueError("Each match winner should have one win recorded.")
         elif i in (id2, id4) and w != 0:
             raise ValueError("Each match loser should have zero wins recorded.")
+    # Test for ties
+    reportMatch(None, None, id1, id2)
+    reportMatch(None, None, id3, id4)
+    standings = playerStandings()
+    for (i, n, w, t, m) in standings:
+        if m != 2:
+            raise ValueError("Each player should have two matches recorded.")
+        if i in (id1, id2, id3, id4) and t != 1:
+            raise ValueError("Each match player should have one tie recorded.")
     print "7. After a match, players have updated standings."
     deleteMatches()
     standings = playerStandings()
     if len(standings) != 4:
         raise ValueError("Match deletion should not change number of players in standings.")
-    for (i, n, w, m) in standings:
+    for (i, n, w, t, m) in standings:
         if m != 0:
             raise ValueError("After deleting matches, players should have zero matches recorded.")
         if w != 0:
             raise ValueError("After deleting matches, players should have zero wins recorded.")
     print "8. After match deletion, player standings are properly reset.\n9. Matches are properly deleted."
+
 
 def testPairings():
     """
