@@ -1,11 +1,8 @@
 -- Table definitions for the tournament project.
---
--- Put your SQL 'create table' statements in this file; also 'create view'
--- statements if you choose to use it.
---
--- You can write comments in this file by starting them with two dashes, like
--- these lines here.
 
+--
+-- PLAYER
+--
 DROP TABLE IF EXISTS player CASCADE;
 
 CREATE TABLE player (
@@ -13,6 +10,9 @@ CREATE TABLE player (
 	name VARCHAR(40)
 );
 
+--
+-- MATCH
+--
 DROP TABLE IF EXISTS match;
 
 CREATE TABLE match (
@@ -21,6 +21,7 @@ CREATE TABLE match (
 	loser INTEGER REFERENCES player (id),
 	p1_ties INTEGER REFERENCES player (id),
 	p2_ties INTEGER REFERENCES player (id),
+	tournament INTEGER REFERENCES tournament (id) NOT NULL,
 
 	-- Player is not alowed to play against him/herself.
 	CHECK (winner != loser AND p1_ties != p2_ties),
@@ -34,7 +35,31 @@ CREATE TABLE match (
 	)
 );
 
+--
+-- TOURNAMENT
+--
+DROP TABLE IF EXISTS tournament CASCADE;
 
+CREATE TABLE tournament (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(40)
+);
+
+--
+-- TOURNAMENT_PLAYER
+--
+DROP TABLE IF EXISTS tournament_player;
+
+CREATE TABLE tournament_player (
+	id SERIAL PRIMARY KEY,
+	tournament INTEGER REFERENCES tournament (id),
+	player INTEGER REFERENCES player (id)
+	-- @todo: tournament player pair should be unique!
+);
+
+--
+-- STANDINGS
+--
 CREATE VIEW standings AS
 	SELECT player.id, player.name, (wins+losses+ties1+ties2) AS matches,
 	       wins, losses, (ties1+ties2) AS ties,

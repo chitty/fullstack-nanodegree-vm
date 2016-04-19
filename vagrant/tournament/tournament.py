@@ -13,6 +13,30 @@ def connect():
     return psycopg2.connect("dbname=tournament")
 
 
+def createTournament(name):
+    """Adds a tournament to the tournament database.
+
+    Args:
+      name: the tournament name (need not be unique).
+    """
+    conn = connect()
+    c = conn.cursor()
+    # @todo: get and return the id of the created tournament
+    c.execute("INSERT INTO tournament (id, name) VALUES (1, %s);", 
+        (bleach.clean(name),))
+    conn.commit()
+    conn.close()
+
+
+def deleteTournaments():
+    """Remove all the tournaments from the database."""
+    conn = connect()
+    c = conn.cursor()
+    c.execute("TRUNCATE tournament CASCADE;")
+    conn.commit()
+    conn.close()
+
+
 def deleteMatches():
     """Remove all the match records from the database."""
     conn = connect()
@@ -22,27 +46,67 @@ def deleteMatches():
     conn.close()
 
 
-def deletePlayers():
-    """Remove all the player records from the database."""
+def deletePlayers(id_tournament=None):
+    """Remove all the player records from the database.
+
+    If id_tournament is passed, deletes player from that tournament
+
+    Args:
+      id_tournament: id of the tournament the player will be deleted from.
+    """
+    query = "TRUNCATE player CASCADE;"
+    if id_tournament:
+        query = "DELETE FROM tournament_player WHERE tournament = 1;"
+        # @todo: Real ID
     conn = connect()
     c = conn.cursor()
-    c.execute("TRUNCATE player CASCADE;")
+    c.execute(query)
     conn.commit()
     conn.close()
 
 
-def countPlayers():
-    """Returns the number of players currently registered."""
+def countPlayers(id_tournament=None):
+    """Returns the number of players in the database.
+
+    If id_tournament is passed, returns the number of players registered in
+    that tournament.
+
+    Args:
+      id_tournament: id of the tournament where the player count will be
+                     performed.
+    """
+    query = "SELECT COUNT(*) FROM player;"
+    if id_tournament:
+        query = ("SELECT COUNT(*) FROM tournament_player WHERE tournament = 1;"
+            # (bleach.clean(id_tournament),) @todo: use real value    
+        )
     conn = connect()
     c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    c.execute("SELECT COUNT(*) FROM player;")
+    c.execute(query)
     result = c.fetchone()
     conn.close()
 
     return result['count']
 
 
-def registerPlayer(name):
+def registerPlayerInTournament(id_player, id_tournament):
+    """Registers a player in a tournament
+
+    Args:
+      name: the player's full name (need not be unique).
+      id_tournament: id of the tournament the player should be registered to.
+                     None if player should not be registered in a tournament
+                     yet.
+    """
+    conn = connect()
+    c = conn.cursor()
+    c.execute("INSERT INTO tournament_player (tournament, player) VALUES (%s,%s);",
+        (bleach.clean(id_tournament), bleach.clean(id_player)))
+    conn.commit()
+    conn.close()
+
+
+def registerPlayer(name, id_tournament=None):
     """Adds a player to the tournament database.
 
     The database assigns a unique serial id number for the player. This is
@@ -50,10 +114,20 @@ def registerPlayer(name):
 
     Args:
       name: the player's full name (need not be unique).
+      id_tournament: id of the tournament the player should be registered to.
+                     None if player should not be registered in a tournament
+                     yet.
     """
     conn = connect()
     c = conn.cursor()
     c.execute("INSERT INTO player (name) VALUES (%s);", (bleach.clean(name),))
+    conn.commit()
+    # @todo: get and return the id of the created player
+    if id_tournament is not None:
+        c.execute("SELECT id FROM player ORDER BY id DESC LIMIT 1;")
+        result = c.fetchone()
+        registerPlayerInTournament(result[0], id_tournament)
+
     conn.commit()
     conn.close()
 
