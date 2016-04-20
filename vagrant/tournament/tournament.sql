@@ -11,6 +11,27 @@ CREATE TABLE player (
 );
 
 --
+-- TOURNAMENT
+--
+DROP TABLE IF EXISTS tournament CASCADE;
+
+CREATE TABLE tournament (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(40)
+);
+
+--
+-- TOURNAMENT_PLAYER
+--
+DROP TABLE IF EXISTS tournament_player;
+
+CREATE TABLE tournament_player (
+	tournament INTEGER REFERENCES tournament (id),
+	player INTEGER REFERENCES player (id),
+	PRIMARY KEY (tournament, player)
+);
+
+--
 -- MATCH
 --
 DROP TABLE IF EXISTS match;
@@ -36,35 +57,14 @@ CREATE TABLE match (
 );
 
 --
--- TOURNAMENT
---
-DROP TABLE IF EXISTS tournament CASCADE;
-
-CREATE TABLE tournament (
-	id SERIAL PRIMARY KEY,
-	name VARCHAR(40)
-);
-
---
--- TOURNAMENT_PLAYER
---
-DROP TABLE IF EXISTS tournament_player;
-
-CREATE TABLE tournament_player (
-	id SERIAL PRIMARY KEY,
-	tournament INTEGER REFERENCES tournament (id),
-	player INTEGER REFERENCES player (id)
-	-- @todo: tournament player pair should be unique!
-);
-
---
 -- STANDINGS
 --
 CREATE VIEW standings AS
-	SELECT player.id, player.name, (wins+losses+ties1+ties2) AS matches,
-	       wins, losses, (ties1+ties2) AS ties,
-	       (3*wins+ties1+ties2) AS points
-	FROM player JOIN (
+	SELECT tournament_player.tournament, player.id, player.name,
+	       (wins+losses+ties1+ties2) AS matches, wins, losses,
+	       (ties1+ties2) AS ties, (3*wins+ties1+ties2) AS points
+	FROM tournament_player JOIN player ON tournament_player.player = player.id
+	JOIN (
 		-- WINS
 		SELECT player.id AS id, COUNT(match.winner) AS wins
 		FROM player LEFT JOIN match ON player.id = match.winner
@@ -75,14 +75,14 @@ CREATE VIEW standings AS
 		FROM player LEFT JOIN match ON player.id = match.loser
 		GROUP BY player.id
 	) AS losses ON wins.id = losses.id JOIN (
-		-- ties AS PLAYER 1
+		-- TIES AS PLAYER 1
 		SELECT player.id AS id, COUNT(match.p1_ties) AS ties1
 		FROM player LEFT JOIN match ON player.id = match.p1_ties
 		GROUP BY player.id
 	) AS ties1 ON player.id = ties1.id JOIN (
-		-- ties AS PLAYER 2
+		-- TIES AS PLAYER 2
 		SELECT player.id AS id, COUNT(match.p2_ties) AS ties2
 		FROM player LEFT JOIN match ON player.id = match.p2_ties
 		GROUP BY player.id
 	) AS ties2 ON player.id = ties2.id
-	ORDER BY points DESC, losses ASC;
+	ORDER BY tournament_player.tournament, points DESC, losses ASC;
