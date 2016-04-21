@@ -1,10 +1,11 @@
 -- Table definitions for the tournament project.
+DROP DATABASE IF EXISTS tournament;
+CREATE DATABASE tournament;
+\c tournament;
 
 --
 -- PLAYER
 --
-DROP TABLE IF EXISTS player CASCADE;
-
 CREATE TABLE player (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(40)
@@ -13,8 +14,6 @@ CREATE TABLE player (
 --
 -- TOURNAMENT
 --
-DROP TABLE IF EXISTS tournament CASCADE;
-
 CREATE TABLE tournament (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(40)
@@ -23,8 +22,6 @@ CREATE TABLE tournament (
 --
 -- TOURNAMENT_PLAYER
 --
-DROP TABLE IF EXISTS tournament_player;
-
 CREATE TABLE tournament_player (
 	tournament INTEGER REFERENCES tournament (id),
 	player INTEGER REFERENCES player (id),
@@ -34,8 +31,6 @@ CREATE TABLE tournament_player (
 --
 -- MATCH
 --
-DROP TABLE IF EXISTS match;
-
 CREATE TABLE match (
 	id SERIAL PRIMARY KEY,
 	winner INTEGER REFERENCES player (id),
