@@ -4,13 +4,17 @@
 #
 
 import psycopg2
-import psycopg2.extras
 import bleach
 
 
-def connect():
+def connect(database_name="tournament"):
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+    try:
+        db = psycopg2.connect("dbname={}".format(database_name))
+        cursor = db.cursor()
+        return db, cursor
+    except:
+        print("Error connecting to the database {}".format(database_name))
 
 
 def createTournament(name):
@@ -20,8 +24,7 @@ def createTournament(name):
     Args:
       name: the tournament name (need not be unique).
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute("INSERT INTO tournament (name) VALUES (%s) RETURNING id;",
               (bleach.clean(name),))
     id_tournament = c.fetchone()[0]
@@ -32,8 +35,7 @@ def createTournament(name):
 
 def deleteTournaments():
     """Remove all the tournaments from the database."""
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute("TRUNCATE tournament CASCADE;")
     conn.commit()
     conn.close()
@@ -47,8 +49,7 @@ def deleteMatches(id_tournament=None):
     Args:
       id_tournament: id of the tournament the player will be deleted from.
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     if id_tournament:
         c.execute("DELETE FROM match WHERE tournament = %s;",
                   (bleach.clean(id_tournament), ))
@@ -66,8 +67,7 @@ def deletePlayers(id_tournament=None):
     Args:
       id_tournament: id of the tournament the player will be deleted from.
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     if id_tournament:
         c.execute("DELETE FROM tournament_player WHERE tournament = %s;",
                   (bleach.clean(id_tournament),))
@@ -88,8 +88,7 @@ def countPlayers(id_tournament=None):
       id_tournament: id of the tournament where the player count will be
                      performed.
     """
-    conn = connect()
-    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    conn, c = connect()
     if id_tournament:
         c.execute("SELECT COUNT(*) FROM tournament_player WHERE "
                   "tournament = %s;", (bleach.clean(id_tournament),))
@@ -99,7 +98,7 @@ def countPlayers(id_tournament=None):
     result = c.fetchone()
     conn.close()
 
-    return result['count']
+    return result[0]
 
 
 def registerPlayerInTournament(id_player, id_tournament):
@@ -111,8 +110,7 @@ def registerPlayerInTournament(id_player, id_tournament):
                      None if player should not be registered in a tournament
                      yet.
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute("INSERT INTO tournament_player (tournament, player) "
               "VALUES (%s,%s);", (bleach.clean(id_tournament),
                                   bleach.clean(id_player)))
@@ -132,8 +130,7 @@ def registerPlayer(name, id_tournament=None):
                      None if player should not be registered in a tournament
                      yet.
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute("INSERT INTO player (name) VALUES (%s);", (bleach.clean(name),))
     conn.commit()
     if id_tournament is not None:
@@ -172,8 +169,7 @@ def playerStandings(id_tournament):
         ties: the number of matches the player has tied
         matches: the number of matches the player has played
     """
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute("SELECT id, name, wins, ties, matches FROM standings "
               "WHERE tournament = %s;", (bleach.clean(id_tournament), ))
     result = c.fetchall()
@@ -207,8 +203,7 @@ def reportMatch(tournament, winner, loser, tie1=None, tie2=None):
     else:
         return
 
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     c.execute(query, values)
     conn.commit()
     conn.close()
