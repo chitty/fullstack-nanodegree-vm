@@ -4,7 +4,6 @@
 #
 
 import psycopg2
-import bleach
 
 
 def connect(database_name="tournament"):
@@ -26,7 +25,7 @@ def createTournament(name):
     """
     conn, c = connect()
     c.execute("INSERT INTO tournament (name) VALUES (%s) RETURNING id;",
-              (bleach.clean(name),))
+              (name,))
     id_tournament = c.fetchone()[0]
     conn.commit()
     conn.close()
@@ -51,8 +50,7 @@ def deleteMatches(id_tournament=None):
     """
     conn, c = connect()
     if id_tournament:
-        c.execute("DELETE FROM match WHERE tournament = %s;",
-                  (bleach.clean(id_tournament), ))
+        c.execute("DELETE FROM match WHERE tournament = %s;", (id_tournament,))
     else:
         c.execute("TRUNCATE match CASCADE;")
     conn.commit()
@@ -70,7 +68,7 @@ def deletePlayers(id_tournament=None):
     conn, c = connect()
     if id_tournament:
         c.execute("DELETE FROM tournament_player WHERE tournament = %s;",
-                  (bleach.clean(id_tournament),))
+                  (id_tournament,))
     else:
         c.execute("TRUNCATE player CASCADE;")
 
@@ -91,7 +89,7 @@ def countPlayers(id_tournament=None):
     conn, c = connect()
     if id_tournament:
         c.execute("SELECT COUNT(*) FROM tournament_player WHERE "
-                  "tournament = %s;", (bleach.clean(id_tournament),))
+                  "tournament = %s;", (id_tournament,))
     else:
         c.execute("SELECT COUNT(*) FROM player;")
 
@@ -112,8 +110,7 @@ def registerPlayerInTournament(id_player, id_tournament):
     """
     conn, c = connect()
     c.execute("INSERT INTO tournament_player (tournament, player) "
-              "VALUES (%s,%s);", (bleach.clean(id_tournament),
-                                  bleach.clean(id_player)))
+              "VALUES (%s,%s);", (id_tournament, id_player))
     conn.commit()
     conn.close()
 
@@ -131,7 +128,7 @@ def registerPlayer(name, id_tournament=None):
                      yet.
     """
     conn, c = connect()
-    c.execute("INSERT INTO player (name) VALUES (%s);", (bleach.clean(name),))
+    c.execute("INSERT INTO player (name) VALUES (%s);", (name,))
     conn.commit()
     if id_tournament is not None:
         c.execute("SELECT id FROM player ORDER BY id DESC LIMIT 1;")
@@ -171,7 +168,7 @@ def playerStandings(id_tournament):
     """
     conn, c = connect()
     c.execute("SELECT id, name, wins, ties, matches FROM standings "
-              "WHERE tournament = %s;", (bleach.clean(id_tournament), ))
+              "WHERE tournament = %s;", (id_tournament, ))
     result = c.fetchall()
     conn.close()
 
@@ -193,13 +190,11 @@ def reportMatch(tournament, winner, loser, tie1=None, tie2=None):
     if winner is not None and loser is not None:
         query = "INSERT INTO match (tournament, winner, loser) "
         query += "VALUES (%s, %s, %s);"
-        values = (bleach.clean(tournament), bleach.clean(winner),
-                  bleach.clean(loser))
+        values = (tournament, winner, loser)
     elif tie1 is not None and tie2 is not None:
         query = "INSERT INTO match (tournament, p1_ties, p2_ties)"
         query += "VALUES (%s, %s, %s);"
-        values = (bleach.clean(tournament), bleach.clean(tie1),
-                  bleach.clean(tie2))
+        values = (tournament, tie1, tie2)
     else:
         return
 
