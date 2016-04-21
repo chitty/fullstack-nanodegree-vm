@@ -6,7 +6,15 @@ It is the implementation of a [Swiss-system tournament](https://en.wikipedia.org
 
 This implementantion supports games where a draw (tied game) is possible. It also supports more than one tournament in the database.
 
-## Draw (tied game)
+## Running
+
+Navigate to `vagrant/tournament/` (same folder as this readme file) and create the database schema by typing `psql -f tournament.sql`. Then, the tests module can be executed by typing `python tournament_test.py` on the system's command line.
+
+The [original tests](https://github.com/udacity/fullstack-nanodegree-vm) were adjusted to take in account the possibility of tied games and multiple tournaments.
+
+## Additional notes
+
+### Draw (tied game)
 
 In order to consider ties, a points system was considered, inpired by soccer and the simple instructions from [Wizards of the Coast](http://www.wizards.com/dci/downloads/swiss_pairings.pdf) points are awarded for a match as follows:
 
@@ -16,18 +24,9 @@ Wins    | 3
 Ties    | 1
 Losses  | 0 
 
-## Multiple tournaments
+### Multiple tournaments
 
 The allow multiple tournaments the following was considered:
 
 - A player could participate in zero or more tournaments.
 - Every match belongs to a tournament.
-
-
-## Testing
-
-Simply run:
-
-	python tournament_test.py
-
-The [original tests](https://github.com/udacity/fullstack-nanodegree-vm) were adjusted to take in account the possibility of tied games and multiple tournaments.
